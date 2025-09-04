@@ -1,11 +1,14 @@
 ﻿using System;
+using System.IO;
+using System.Timers;
+using System.Collections;
 using System.Reflection;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
-using UnityEngine;
 using ServerSync;
+using UnityEngine;
 
 namespace VH.StaggerTuner
 {
@@ -14,7 +17,7 @@ namespace VH.StaggerTuner
     {
         public const string ModGUID = "vh.staggertuner";
         public const string ModName = "Stagger Tuner";
-        public const string Version = "0.8.0";
+        public const string Version = "0.8.2";
 
         internal static ManualLogSource Log;
         internal static Harmony H;
@@ -22,16 +25,14 @@ namespace VH.StaggerTuner
         // Local config
         internal static ConfigEntry<bool> CEnabled;
         internal static ConfigEntry<float> CThresholdMultiplier;
-        internal static ConfigEntry<float> CIncomingStaggerMultiplier; // optional, default 1.0 = off
 
         // ServerSync
         internal static ConfigSync ConfigSync;
         internal static SyncedConfigEntry<bool> SS_Enabled;
         internal static SyncedConfigEntry<float> SS_ThresholdMultiplier;
-        internal static SyncedConfigEntry<float> SS_IncomingStaggerMultiplier;
         internal static SyncedConfigEntry<bool> SS_LockConfig;
 
-        // Optional: nicer display in BepInEx Config Manager
+        // Config UI niceties (safe even if Config Manager isn't installed)
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
         private sealed class ConfigurationManagerAttributes : Attribute
         {
@@ -39,11 +40,16 @@ namespace VH.StaggerTuner
             public int? Order;
         }
 
+        // Hot-reload watcher (server-side)
+        private FileSystemWatcher _cfgWatcher;
+        private Timer _debounce;
+        private string _cfgPath;
+
         private void Awake()
         {
             Log = Logger;
 
-            // ServerSync
+            // ServerSync bootstrap
             ConfigSync = new ConfigSync(ModGUID)
             {
                 DisplayName = ModName,
@@ -52,61 +58,81 @@ namespace VH.StaggerTuner
                 ModRequired = true
             };
 
-            // Config (local)
+            // Config
             CEnabled = Config.Bind(
                 "General", "Enabled", true,
-                new ConfigDescription("Enable stagger tuning (player-only).",
-                    null, new ConfigurationManagerAttributes { Order = 3, Description = "Server can lock & sync this value." }));
+                new ConfigDescription(
+                    "Enable stagger tuning (player-only).",
+                    null,
+                    new ConfigurationManagerAttributes { Order = 2, Description = "Server can lock & sync this value." }
+                )
+            );
 
             CThresholdMultiplier = Config.Bind(
                 "Tuning", "StaggerThresholdMultiplier", 1.60f,
-                new ConfigDescription("Multiplier for player stagger threshold (acts like a bigger stagger bar). 1.0 = vanilla.",
+                new ConfigDescription(
+                    "Multiplier for player stagger threshold (acts like a bigger stagger bar). 1.0 = vanilla.",
                     new AcceptableValueRange<float>(0.50f, 3.00f),
-                    new ConfigurationManagerAttributes { Order = 2, Description = "1.6 ≈ +60% bar; 2.0 ≈ +100% bar." }));
+                    new ConfigurationManagerAttributes { Order = 1, Description = "1.6 ≈ +60% bar; 2.0 ≈ +100% bar." }
+                )
+            );
 
-            // Optional cushion (per-hit). Default 1.0 = no change. Leave at 1.0 for best perf.
-            CIncomingStaggerMultiplier = Config.Bind(
-                "Tuning (Advanced)", "IncomingStaggerMultiplier", 1.00f,
-                new ConfigDescription("Scales stagger added to players per hit. 1.0 = vanilla. <1 reduces, >1 increases.",
-                    new AcceptableValueRange<float>(0.50f, 1.50f),
-                    new ConfigurationManagerAttributes { Order = 1, Description = "Leave at 1.0 for best performance/consistency." }));
-
-            // ServerSync lock toggle
-            var lockCfgLocal = Config.Bind("Server Sync", "Lock Configuration", true,
-                new ConfigDescription("If on (server-side), configuration is locked and synced to all clients."));
+            // Server lock toggle (server authority over values)
+            var lockCfgLocal = Config.Bind(
+                "Server Sync", "Lock Configuration", true,
+                new ConfigDescription("If on (server-side), configuration is locked and synced to all clients.")
+            );
             SS_LockConfig = ConfigSync.AddLockingConfigEntry(lockCfgLocal);
 
-            // Register synced entries
+            // Register synchronized entries
             SS_Enabled = ConfigSync.AddConfigEntry(CEnabled); SS_Enabled.SynchronizedConfig = true;
             SS_ThresholdMultiplier = ConfigSync.AddConfigEntry(CThresholdMultiplier); SS_ThresholdMultiplier.SynchronizedConfig = true;
-            SS_IncomingStaggerMultiplier = ConfigSync.AddConfigEntry(CIncomingStaggerMultiplier); SS_IncomingStaggerMultiplier.SynchronizedConfig = true;
 
-            // Patch
+            // Harmony patching
             H = new Harmony(ModGUID);
             H.PatchAll();
-            // Bind optional per-hit patch only if it will actually change anything
-            if (GetIncomingMult() != 1.0f && IsEnabled())
-                AddStaggerDamageBinder.BindAndPatch(H);
 
-            Log.LogInfo($"[{ModName}] Loaded {Version} (ServerSync enabled).");
+            // Start server-side config watcher 
+            StartFileWatcher();
+
+            Log.LogInfo("[" + ModName + "] Loaded " + Version + " (threshold-only; ServerSync enabled).");
         }
 
-        private void OnDestroy() => H?.UnpatchSelf();
+        private void OnDestroy()
+        {
+            try { if (H != null) H.UnpatchSelf(); } catch (Exception) { /* ignore */ }
+            try
+            {
+                if (_cfgWatcher != null)
+                {
+                    _cfgWatcher.EnableRaisingEvents = false;
+                    _cfgWatcher.Dispose();
+                }
+                if (_debounce != null) _debounce.Dispose();
+            }
+            catch (Exception) { /* ignore */ }
+        }
 
-        // Helpers reading possibly-synced values
-        internal static bool IsEnabled() => SS_Enabled?.Value ?? CEnabled?.Value ?? true;
+        // Helper accessors (read synced values if present)
+        internal static bool IsEnabled()
+        {
+            if (SS_Enabled != null) return SS_Enabled.Value;
+            if (CEnabled != null) return CEnabled.Value;
+            return true;
+        }
+
         internal static float GetThreshMult()
         {
-            var x = SS_ThresholdMultiplier?.Value ?? CThresholdMultiplier?.Value ?? 1.60f;
-            return Mathf.Clamp(x, 0.50f, 3.00f);
-        }
-        internal static float GetIncomingMult()
-        {
-            var x = SS_IncomingStaggerMultiplier?.Value ?? CIncomingStaggerMultiplier?.Value ?? 1.00f;
-            return Mathf.Clamp(x, 0.50f, 1.50f);
+            float x = 1.60f;
+            if (SS_ThresholdMultiplier != null) x = SS_ThresholdMultiplier.Value;
+            else if (CThresholdMultiplier != null) x = CThresholdMultiplier.Value;
+
+            if (x < 0.50f) x = 0.50f;
+            else if (x > 3.00f) x = 3.00f;
+            return x;
         }
 
-        //Stagger Threshold scaling should work in live and PTB
+        // Primary patch: scale player stagger threshold (works on live + PTB) 
         [HarmonyPatch(typeof(Character), "GetStaggerTreshold")]
         private static class Patch_GetStaggerTreshold_Postfix
         {
@@ -120,70 +146,99 @@ namespace VH.StaggerTuner
                 }
                 catch (Exception e)
                 {
-                    Log.LogWarning($"[StaggerTuner] GetStaggerTreshold postfix failed: {e}");
+                    Log.LogWarning("[StaggerTuner] GetStaggerTreshold postfix failed: " + e);
                 }
             }
         }
 
-        // Optional: reduce incoming stagger per hit (runtime-overload binding; off by default)
-        internal static class AddStaggerDamageBinder
+       
+        // File watcher (server-only)
+    
+        private void StartFileWatcher()
         {
-            public static void BindAndPatch(Harmony h)
+            try
             {
-                try
+                _cfgPath = Config.ConfigFilePath;
+                if (string.IsNullOrEmpty(_cfgPath) || !File.Exists(_cfgPath))
                 {
-                    var t = typeof(Character);
-                    // PTB: (float, Vector3, HitData)
-                    var m = AccessTools.Method(t, "AddStaggerDamage",
-                        new[] { typeof(float), typeof(Vector3), typeof(HitData) });
-                    string postfix = null;
-
-                    if (m != null)
-                    {
-                        h.Patch(m, prefix: new HarmonyMethod(typeof(AddStaggerDamageBinder), nameof(Prefix3)));
-                        Log.LogInfo("[StaggerTuner] Patched Character.AddStaggerDamage(float, Vector3, HitData) for incoming scaling.");
-                        return;
-                    }
-
-                    // Live: (float, Vector3)
-                    m = AccessTools.Method(t, "AddStaggerDamage",
-                        new[] { typeof(float), typeof(Vector3) });
-
-                    if (m != null)
-                    {
-                        h.Patch(m, prefix: new HarmonyMethod(typeof(AddStaggerDamageBinder), nameof(Prefix2)));
-                        Log.LogInfo("[StaggerTuner] Patched Character.AddStaggerDamage(float, Vector3) for incoming scaling.");
-                        return;
-                    }
-
-                    Log.LogWarning("[StaggerTuner] AddStaggerDamage overload not found; skipping incoming scaling.");
+                    Log.LogWarning("[StaggerTuner] Config file not found for watcher; hot-reload disabled.");
+                    return;
                 }
-                catch (Exception e)
+
+                string dir = Path.GetDirectoryName(_cfgPath);
+                string file = Path.GetFileName(_cfgPath);
+                if (string.IsNullOrEmpty(dir) || string.IsNullOrEmpty(file))
                 {
-                    Log.LogWarning($"[StaggerTuner] Failed to bind AddStaggerDamage: {e}");
+                    Log.LogWarning("[StaggerTuner] Invalid config path; hot-reload disabled.");
+                    return;
                 }
-            }
 
-            // PTB
-            private static void Prefix3(Character __instance, ref float damage, Vector3 forceDirection, HitData hit)
-            {
-                TryScaleIncoming(__instance, ref damage);
-            }
-            // Live
-            private static void Prefix2(Character __instance, ref float damage, Vector3 forceDirection)
-            {
-                TryScaleIncoming(__instance, ref damage);
-            }
+                _debounce = new Timer(600.0);
+                _debounce.AutoReset = false;
+                _debounce.Elapsed += (s, e) => UnityMainThread(SoftReloadAndResync);
 
-            private static void TryScaleIncoming(Character ch, ref float damage)
-            {
-                if (!IsEnabled()) return;
-                if (!ch.IsPlayer()) return;
+                _cfgWatcher = new FileSystemWatcher(dir, file);
+                _cfgWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+                _cfgWatcher.IncludeSubdirectories = false;
 
-                float m = GetIncomingMult();
-                if (Mathf.Approximately(m, 1f)) return; // no-op if default
-                damage *= m; // m < 1.0 reduces stagger per hit
+                FileSystemEventHandler kick = (s, e) =>
+                {
+                    try { if (_debounce != null) _debounce.Start(); } catch (Exception) { }
+                };
+                RenamedEventHandler kickRename = (s, e) =>
+                {
+                    try { if (_debounce != null) _debounce.Start(); } catch (Exception) { }
+                };
+
+                _cfgWatcher.Changed += kick;
+                _cfgWatcher.Created += kick;
+                _cfgWatcher.Renamed += kickRename;
+
+                _cfgWatcher.EnableRaisingEvents = true;
+
+                Log.LogInfo("[StaggerTuner] Config file watcher armed for hot-reload.");
             }
+            catch (Exception e)
+            {
+                Log.LogWarning("[StaggerTuner] File watcher init failed: " + e);
+            }
+        }
+
+        private void SoftReloadAndResync()
+        {
+            try
+            {
+                // Server only; avoid loops during remote applies
+                if (ZNet.instance == null || !ZNet.instance.IsServer()) return;
+                if (ConfigSync == null) return;
+
+                // Skip if we're not the authority, or if ServerSync is currently applying values
+                if (!ConfigSync.IsSourceOfTruth) return;
+                if (ConfigSync.ProcessingServerUpdate) return;
+
+                Log.LogInfo("[StaggerTuner] Detected server config change; reloading (no version bump).");
+
+                // Loads new values from file; raises SettingChanged; ServerSync will propagate to clients
+                Config.Reload();
+
+                Log.LogInfo("[StaggerTuner] Reloaded config and signaled ServerSync to propagate values.");
+            }
+            catch (Exception e)
+            {
+                Log.LogWarning("[StaggerTuner] Soft reload failed: " + e);
+            }
+        }
+
+        // Run an action on main thread next frame
+        private void UnityMainThread(Action action)
+        {
+            StartCoroutine(CoNextFrame(action));
+        }
+
+        private IEnumerator CoNextFrame(Action action)
+        {
+            yield return null;
+            try { if (action != null) action(); } catch (Exception e) { Log.LogWarning("[StaggerTuner] Hot-reload error: " + e); }
         }
     }
 }
