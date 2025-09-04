@@ -1,34 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <!-- If you use the ILRepack.MSBuild.Task NuGet, this UsingTask is auto-wired.
-       Leave this here as a safety net (path is auto-resolved by the package). -->
-  <UsingTask TaskName="ILRepack" AssemblyFile="$(ILRepackMSBuildTaskPath)" Condition="Exists('$(ILRepackMSBuildTaskPath)')" />
+	<!-- MSBuild task from the ILRepack.MSBuild.Task NuGet (2.0.13) -->
+	<UsingTask TaskName="ILRepack"
+			   AssemblyFile="$(ILRepackMSBuildTaskPath)"
+			   Condition="Exists('$(ILRepackMSBuildTaskPath)')" />
 
-  <Target Name="ILRepacker" AfterTargets="Build" Condition="Exists('$(OutputPath)\ServerSync.dll')">
-    <PropertyGroup>
-      <!-- Merge to a temp file, then copy back to avoid in-use issues -->
-      <_MergedOutput>$(TargetDir)$(TargetName).merged$(TargetExt)</_MergedOutput>
-    </PropertyGroup>
+	<Target Name="ILRepacker" AfterTargets="Build"
+			Condition="Exists('$(ILRepackMSBuildTaskPath)') and Exists('$(TargetPath)') and Exists('$(OutDir)ServerSync.dll')">
 
-    <ItemGroup>
-      <InputAssemblies Include="$(TargetPath)" />
-      <InputAssemblies Include="$(OutputPath)\ServerSync.dll" />
-    </ItemGroup>
+		<PropertyGroup>
+			<!-- Merge into a temp, then replace the original -->
+			<MergedOut>$(TargetDir)$(TargetName).merged$(TargetExt)</MergedOut>
+			<!-- Resolve Harmony/Unity from your game folders (defined in the .csproj) -->
+			<LibPath>$(OutDir);$(BepInExCore);$(UnityManaged)</LibPath>
+		</PropertyGroup>
 
-    <ILRepack
-      Parallel="true"
-      DebugInfo="true"
-      Internalize="true"
-      InputAssemblies="@(InputAssemblies)"
-      OutputFile="$(_MergedOutput)"
-      TargetKind="SameAsPrimaryAssembly"
-      LibraryPath="$(OutputPath)"
-      />
-    
-    <!-- Replace the original with the merged output -->
-    <Copy SourceFiles="$(_MergedOutput)" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="true" />
-    <Delete Files="$(_MergedOutput)" />
-  </Target>
+		<!-- Optional diagnostics -->
+		<Message Text="(ILRepack) OutDir    = $(OutDir)" Importance="High" />
+		<Message Text="(ILRepack) Target    = $(TargetPath)" Importance="High" />
+		<Message Text="(ILRepack) LibPath   = $(LibPath)" Importance="High" />
+		<Message Text="(ILRepack) MergedOut = $(MergedOut)" Importance="High" />
+
+		<ItemGroup>
+			<InputAssemblies Include="$(TargetPath)" />
+			<InputAssemblies Include="$(OutDir)ServerSync.dll" />
+		</ItemGroup>
+
+		<ILRepack
+		  Parallel="true"
+		  DebugInfo="true"
+		  Internalize="true"
+		  InputAssemblies="@(InputAssemblies)"
+		  Output="$(MergedOut)"
+		  TargetKind="SameAsPrimaryAssembly"
+		  LibraryPath="$(LibPath)" />
+
+		<Copy SourceFiles="$(MergedOut)" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="true" />
+		<Delete Files="$(MergedOut)" />
+
+		<Message Text="(ILRepack) Merge complete -> $(TargetPath)" Importance="High" />
+	</Target>
 
 </Project>
