@@ -33,13 +33,8 @@ namespace VH.StaggerTuner
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
         private sealed class ConfigurationManagerAttributes : Attribute
         {
-            public bool? Browsable;
-            public string Category;
             public string Description;
-            public bool? IsAdvanced;
             public int? Order;
-            public bool? ShowRangeAsPercent;
-            public string DispName;
         }
 
         private void Awake()
