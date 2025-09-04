@@ -47,6 +47,9 @@
       <HintPath>..\..\libs\gui_framework.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="ServerSync">
+      <HintPath>..\..\libs\ServerSync.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -81,7 +84,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="StaggerTuner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
