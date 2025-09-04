@@ -1,45 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-	<!-- MSBuild task from the ILRepack.MSBuild.Task NuGet (2.0.13) -->
-	<UsingTask TaskName="ILRepack"
-			   AssemblyFile="$(ILRepackMSBuildTaskPath)"
-			   Condition="Exists('$(ILRepackMSBuildTaskPath)')" />
+	<PropertyGroup>
+		<ILRepackExe>C:\git\tools\ILRepack\ILRepack.exe</ILRepackExe>
+	</PropertyGroup>
 
-	<Target Name="ILRepacker" AfterTargets="Build"
-			Condition="Exists('$(ILRepackMSBuildTaskPath)') and Exists('$(TargetPath)') and Exists('$(OutDir)ServerSync.dll')">
+	<Target Name="ILRepack_AfterBuild"
+			AfterTargets="Build"
+			Condition="'$(DesignTimeBuild)' != 'true'">
 
 		<PropertyGroup>
-			<!-- Merge into a temp, then replace the original -->
-			<MergedOut>$(TargetDir)$(TargetName).merged$(TargetExt)</MergedOut>
-			<!-- Resolve Harmony/Unity from your game folders (defined in the .csproj) -->
-			<LibPath>$(OutDir);$(BepInExCore);$(UnityManaged)</LibPath>
+			<OutDirNorm>$([System.IO.Path]::GetFullPath('$(OutDir)'))</OutDirNorm>
+			<MergedOut>StaggerTuner.merged.dll</MergedOut>
+			<PluginDll>StaggerTuner.dll</PluginDll>
+			<ServerSyncDll>ServerSync.dll</ServerSyncDll>
+			<!-- IMPORTANT: don't quote this; ILRepack expects ;-separated paths -->
+			<LibArg>/lib:.;$(BepInExCore);$(UnityManaged)</LibArg>
 		</PropertyGroup>
 
-		<!-- Optional diagnostics -->
-		<Message Text="(ILRepack) OutDir    = $(OutDir)" Importance="High" />
-		<Message Text="(ILRepack) Target    = $(TargetPath)" Importance="High" />
-		<Message Text="(ILRepack) LibPath   = $(LibPath)" Importance="High" />
-		<Message Text="(ILRepack) MergedOut = $(MergedOut)" Importance="High" />
+		<Error Text="(ILRepack) ILRepack.exe not found at $(ILRepackExe)"
+			   Condition="!Exists('$(ILRepackExe)')" />
+		<Error Text="(ILRepack) Output folder missing: $(OutDirNorm)"
+			   Condition="!Exists('$(OutDirNorm)')" />
+		<Error Text="(ILRepack) $(PluginDll) missing in $(OutDirNorm)"
+			   Condition="!Exists('$(OutDirNorm)$(PluginDll)')" />
+		<Error Text="(ILRepack) $(ServerSyncDll) missing in $(OutDirNorm) (set Private=true on the ServerSync reference)"
+			   Condition="!Exists('$(OutDirNorm)$(ServerSyncDll)')" />
 
-		<ItemGroup>
-			<InputAssemblies Include="$(TargetPath)" />
-			<InputAssemblies Include="$(OutDir)ServerSync.dll" />
-		</ItemGroup>
+		<Message Text="(ILRepack) Merging $(PluginDll) + $(ServerSyncDll) (wd=$(OutDirNorm))" Importance="High" />
 
-		<ILRepack
-		  Parallel="true"
-		  DebugInfo="true"
-		  Internalize="true"
-		  InputAssemblies="@(InputAssemblies)"
-		  Output="$(MergedOut)"
-		  TargetKind="SameAsPrimaryAssembly"
-		  LibraryPath="$(LibPath)" />
+		<Exec
+		  WorkingDirectory="$(OutDirNorm)"
+		  Command="&quot;$(ILRepackExe)&quot; /internalize /lib:. /lib:&quot;$(BepInExCore)&quot; /lib:&quot;$(UnityManaged)&quot; /verbose /log:ilrepack.log /out:.\StaggerTuner.merged.dll StaggerTuner.dll ServerSync.dll"
+		  ConsoleToMSBuild="true" />
 
-		<Copy SourceFiles="$(MergedOut)" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="true" />
-		<Delete Files="$(MergedOut)" />
 
-		<Message Text="(ILRepack) Merge complete -> $(TargetPath)" Importance="High" />
+		<Copy SourceFiles="$(OutDirNorm)$(MergedOut)"
+			  DestinationFiles="$(OutDirNorm)$(PluginDll)"
+			  OverwriteReadOnlyFiles="true" />
+		<Delete Files="$(OutDirNorm)$(MergedOut)" />
+		<Message Text="(ILRepack) Merge complete -> $(OutDirNorm)$(PluginDll)" Importance="High" />
 	</Target>
 
 </Project>

@@ -1,83 +1,52 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-	<!-- ===== Project settings ===== -->
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
 		<AssemblyName>StaggerTuner</AssemblyName>
 		<RootNamespace>VH.StaggerTuner</RootNamespace>
-		<LangVersion>latest</LangVersion>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<Optimize>true</Optimize>
 		<Deterministic>true</Deterministic>
-		<!-- Keep false if you have Properties/AssemblyInfo.cs -->
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 	</PropertyGroup>
 
-	<!-- ===== Paths: edit these two only ===== -->
+	<!-- edit these two paths -->
 	<PropertyGroup>
-		<!-- Your Valheim install root -->
 		<GameRoot>C:\Program Files (x86)\Steam\steamapps\common\Valheim</GameRoot>
-		<!-- Where ServerSync.dll actually lives (NOT the game folder) -->
 		<ServerSyncRoot>C:\git\libs</ServerSyncRoot>
-
-		<!-- Derived: do not edit -->
+		<!-- derived -->
 		<BepInExCore>$(GameRoot)\BepInEx\core</BepInExCore>
 		<UnityManaged>$(GameRoot)\valheim_Data\Managed</UnityManaged>
 	</PropertyGroup>
 
-	<!-- ===== NuGet: ILRepack MSBuild task ===== -->
 	<ItemGroup>
-		<PackageReference Include="ILRepack.MSBuild.Task" Version="2.0.13" PrivateAssets="all" />
-	</ItemGroup>
-
-	<!-- ===== Compile-time references =====
-       BepInEx/Harmony/Unity/Valheim = resolve only (do NOT copy/merge)
-       ServerSync = copy so ILRepack can merge it -->
-	<ItemGroup>
-		<!-- BepInEx + Harmony -->
+		<!-- Resolve-only: provided by the game -->
 		<Reference Include="BepInEx">
 			<HintPath>$(BepInExCore)\BepInEx.dll</HintPath>
-			<Private>false</Private>
+			<Private>True</Private>
 		</Reference>
 		<Reference Include="0Harmony">
 			<HintPath>$(BepInExCore)\0Harmony.dll</HintPath>
-			<Private>false</Private>
+			<Private>True</Private>
 		</Reference>
-
-		<!-- Valheim / Unity -->
 		<Reference Include="assembly_valheim">
 			<HintPath>$(UnityManaged)\assembly_valheim.dll</HintPath>
-			<Private>false</Private>
-		</Reference>
-		<Reference Include="UnityEngine">
-		  <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim\valheim_Data\Managed\UnityEngine.dll</HintPath>
-		  <Private>False</Private>
+			<Private>True</Private>
 		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
 			<HintPath>$(UnityManaged)\UnityEngine.CoreModule.dll</HintPath>
-			<Private>false</Private>
+			<Private>True</Private>
 		</Reference>
-		<!-- (Optional) Only if you actually need it:
-    <Reference Include="UnityEngine">
-      <HintPath>$(UnityManaged)\UnityEngine.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    -->
+		<Reference Include="UnityEngine">
+			<HintPath>$(UnityManaged)\UnityEngine.dll</HintPath>
+			<Private>True</Private>
+		</Reference>
 
-		<!-- ServerSync (copy to bin so ILRepack can merge it) -->
+		<!-- Copy so we can merge it -->
 		<Reference Include="ServerSync">
 			<HintPath>$(ServerSyncRoot)\ServerSync.dll</HintPath>
-			<Private>True</Private>
-			<EmbedInteropTypes>False</EmbedInteropTypes>
+			<Private>true</Private>
 		</Reference>
 	</ItemGroup>
 
-	<!-- ===== ILRepack merge step (Option A expects ServerSync.dll next to your DLL) ===== -->
-	<!-- Keep ILRepack.targets next to this csproj; it should merge $(TargetPath) + $(OutputPath)\ServerSync.dll -->
+	<!-- Import our CLI-based merge step -->
 	<Import Project="ILRepack.targets" Condition="Exists('ILRepack.targets')" />
-	<ItemGroup>
-	  <Reference Update="System">
-	    <Private>False</Private>
-	  </Reference>
-	</ItemGroup>
-
 </Project>
