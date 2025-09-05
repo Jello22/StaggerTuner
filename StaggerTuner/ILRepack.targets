@@ -1,45 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-
-	<PropertyGroup>
-		<ILRepackExe>C:\git\tools\ILRepack\ILRepack.exe</ILRepackExe>
-	</PropertyGroup>
-
-	<Target Name="ILRepack_AfterBuild"
-			AfterTargets="Build"
-			Condition="'$(DesignTimeBuild)' != 'true'">
-
-		<PropertyGroup>
-			<OutDirNorm>$([System.IO.Path]::GetFullPath('$(OutDir)'))</OutDirNorm>
-			<MergedOut>StaggerTuner.merged.dll</MergedOut>
-			<PluginDll>StaggerTuner.dll</PluginDll>
-			<ServerSyncDll>ServerSync.dll</ServerSyncDll>
-			<!-- IMPORTANT: don't quote this; ILRepack expects ;-separated paths -->
-			<LibArg>/lib:.;$(BepInExCore);$(UnityManaged)</LibArg>
-		</PropertyGroup>
-
-		<Error Text="(ILRepack) ILRepack.exe not found at $(ILRepackExe)"
-			   Condition="!Exists('$(ILRepackExe)')" />
-		<Error Text="(ILRepack) Output folder missing: $(OutDirNorm)"
-			   Condition="!Exists('$(OutDirNorm)')" />
-		<Error Text="(ILRepack) $(PluginDll) missing in $(OutDirNorm)"
-			   Condition="!Exists('$(OutDirNorm)$(PluginDll)')" />
-		<Error Text="(ILRepack) $(ServerSyncDll) missing in $(OutDirNorm) (set Private=true on the ServerSync reference)"
-			   Condition="!Exists('$(OutDirNorm)$(ServerSyncDll)')" />
-
-		<Message Text="(ILRepack) Merging $(PluginDll) + $(ServerSyncDll) (wd=$(OutDirNorm))" Importance="High" />
-
-		<Exec
-		  WorkingDirectory="$(OutDirNorm)"
-		  Command="&quot;$(ILRepackExe)&quot; /internalize /lib:. /lib:&quot;$(BepInExCore)&quot; /lib:&quot;$(UnityManaged)&quot; /verbose /log:ilrepack.log /out:.\StaggerTuner.merged.dll StaggerTuner.dll ServerSync.dll"
-		  ConsoleToMSBuild="true" />
-
-
-		<Copy SourceFiles="$(OutDirNorm)$(MergedOut)"
-			  DestinationFiles="$(OutDirNorm)$(PluginDll)"
-			  OverwriteReadOnlyFiles="true" />
-		<Delete Files="$(OutDirNorm)$(MergedOut)" />
-		<Message Text="(ILRepack) Merge complete -> $(OutDirNorm)$(PluginDll)" Importance="High" />
-	</Target>
-
+    <Target Name="ILRepacker" AfterTargets="Build">
+        <ItemGroup>
+            <InputAssemblies Include="$(TargetPath)" />
+            <InputAssemblies Include="$(OutputPath)\ServerSync.dll" />
+        </ItemGroup>
+        <ILRepack Parallel="true" DebugInfo="true" Internalize="true" InputAssemblies="@(InputAssemblies)" OutputFile="$(TargetPath)" TargetKind="SameAsPrimaryAssembly" LibraryPath="$(OutputPath)" />
+    </Target>
 </Project>

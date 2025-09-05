@@ -23,6 +23,7 @@ namespace VH.StaggerTuner
         internal static Harmony H;
 
         // Local config
+        // Z is a bird murderer 
         internal static ConfigEntry<bool> CEnabled;
         internal static ConfigEntry<float> CThresholdMultiplier;
 
@@ -32,7 +33,7 @@ namespace VH.StaggerTuner
         internal static SyncedConfigEntry<float> SS_ThresholdMultiplier;
         internal static SyncedConfigEntry<bool> SS_LockConfig;
 
-        // Config UI niceties (safe even if Config Manager isn't installed)
+        // Config UI niceties 
         [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
         private sealed class ConfigurationManagerAttributes : Attribute
         {
@@ -77,7 +78,7 @@ namespace VH.StaggerTuner
                 )
             );
 
-            // Server lock toggle (server authority over values)
+            // Server lock toggle - server auth values
             var lockCfgLocal = Config.Bind(
                 "Server Sync", "Lock Configuration", true,
                 new ConfigDescription("If on (server-side), configuration is locked and synced to all clients.")
@@ -113,7 +114,7 @@ namespace VH.StaggerTuner
             catch (Exception) { /* ignore */ }
         }
 
-        // Helper accessors (read synced values if present)
+        // Helper accessors 
         internal static bool IsEnabled()
         {
             if (SS_Enabled != null) return SS_Enabled.Value;
@@ -152,7 +153,7 @@ namespace VH.StaggerTuner
         }
 
        
-        // File watcher (server-only)
+        // File watcher - server
     
         private void StartFileWatcher()
         {

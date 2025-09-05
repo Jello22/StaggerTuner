@@ -16,6 +16,12 @@
 		<BepInExCore>$(GameRoot)\BepInEx\core</BepInExCore>
 		<UnityManaged>$(GameRoot)\valheim_Data\Managed</UnityManaged>
 	</PropertyGroup>
+	<ItemGroup>
+	  <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.43">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
+	</ItemGroup>
 
 	<ItemGroup>
 		<!-- Resolve-only: provided by the game -->
@@ -31,6 +37,9 @@
 			<HintPath>$(UnityManaged)\assembly_valheim.dll</HintPath>
 			<Private>True</Private>
 		</Reference>
+		<Reference Include="ServerSync">
+		  <HintPath>..\libs\ServerSync.dll</HintPath>
+		</Reference>
 		<Reference Include="UnityEngine.CoreModule">
 			<HintPath>$(UnityManaged)\UnityEngine.CoreModule.dll</HintPath>
 			<Private>True</Private>
@@ -41,10 +50,6 @@
 		</Reference>
 
 		<!-- Copy so we can merge it -->
-		<Reference Include="ServerSync">
-			<HintPath>$(ServerSyncRoot)\ServerSync.dll</HintPath>
-			<Private>true</Private>
-		</Reference>
 	</ItemGroup>
 
 	<!-- Import our CLI-based merge step -->
