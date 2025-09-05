@@ -99,21 +99,6 @@ namespace VH.StaggerTuner
             Log.LogInfo("[" + ModName + "] Loaded " + Version + " (threshold-only; ServerSync enabled).");
         }
 
-        private void OnDestroy()
-        {
-            try { if (H != null) H.UnpatchSelf(); } catch (Exception) { /* ignore */ }
-            try
-            {
-                if (_cfgWatcher != null)
-                {
-                    _cfgWatcher.EnableRaisingEvents = false;
-                    _cfgWatcher.Dispose();
-                }
-                if (_debounce != null) _debounce.Dispose();
-            }
-            catch (Exception) { /* ignore */ }
-        }
-
         // Helper accessors 
         internal static bool IsEnabled()
         {
