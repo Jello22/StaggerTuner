@@ -23,7 +23,7 @@ namespace VH.StaggerTuner
         internal static Harmony H;
 
         // Local config
-        // Z is a bird murderer 
+        // Z is a bird murderer!!
         internal static ConfigEntry<bool> CEnabled;
         internal static ConfigEntry<float> CThresholdMultiplier;
 
