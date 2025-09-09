@@ -1,0 +1,9 @@
+{
+  "name": "Stagger_Tuner",
+  "version_number": "0.8.4",
+  "website_url": "https://github.com/Jello22/StaggerTuner",
+  "description": "Makes Hard/VeryHard playable with non meta weapons/loadout by scaling stagger threshold.",
+  "dependencies": [
+    "denikson-BepInExPack_Valheim-5.4.2333"
+  ]
+}

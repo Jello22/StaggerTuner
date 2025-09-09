@@ -17,7 +17,7 @@ namespace VH.StaggerTuner
     {
         public const string ModGUID = "vh.staggertuner";
         public const string ModName = "Stagger Tuner";
-        public const string Version = "0.8.3";
+        public const string Version = "0.8.4";
 
         internal static ManualLogSource Log;
         internal static Harmony H;

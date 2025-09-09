@@ -1,21 +1,20 @@
 # Stagger Tuner
 
-**Goal:** Make Hard/VeryHard feel fair without forcing sword+board. This mod **only** scales the **player’s stagger threshold** , so you can block/parry more than once without instantly eating dirt. HP damage stays vanilla.
+Created out of a want to play Hard or Very_Hard difficulty without feeling like needing to focus on only dodging or playing specific weapon/shield combos.  If I wanted to play Dark Souls I would go play that :-)
 
 ## What it does
 - Multiplies `Character.GetStaggerTreshold()` **for players only**.
 - Default multiplier: **1.60x** (≈60% larger bar). Configurable.  **note the bar does not appear larger**
-- No changes to outgoing/incoming HP damage. No per-hit hooks by default.
+    - 1.60 multiplier is what felt good for me at hard/very_hard however I could see 1.3 - 1.4 for someone who is at a higher skill level
+    - No changes to outgoing/incoming HP damage. No per-hit hooks by default.
 - **ServerSync** support:
   - Server can lock and broadcast settings.
   - `ModRequired = true` by default: clients must have the mod.
-
-## Config (BepInEx config)
-File: `BepInEx/config/vh.staggertuner.cfg`
-- `General.Enabled` (bool, default `true`)
-- `Tuning.StaggerThresholdMultiplier` (float, default `1.60`, range `0.50`–`3.00`)
-- `Server Sync.Lock Configuration` (bool, default `true` on server)
-
-> This is my first mod so far no issues have come up during testing just was tired of feeling forced into a "meta" on hard/very_hard 
+- Full damage if you miss a parry or block so you will still be punished for getting hit.
 
 
+
+This is my first mod hopefully it helps you enjoy the game a bit more
+
+# Contact
+Discord: jello_cf
