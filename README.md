@@ -1,20 +1,35 @@
 # Stagger Tuner
 
-Created out of a want to play Hard or Very_Hard difficulty without feeling like needing to focus on only dodging or playing specific weapon/shield combos.  If I wanted to play Dark Souls I would go play that :-)
-
+Stagger Tuner was created for players who want to play on **Hard** or **Very Hard** difficulty without feeling forced into constantly dodging or using specific weapon and shield combinations.
 ## What it does
-- Multiplies `Character.GetStaggerTreshold()` **for players only**.
-- Default multiplier: **1.60x** (≈60% larger bar). Configurable.  **note the bar does not appear larger**
-    - 1.60 multiplier is what felt good for me at hard/very_hard however I could see 1.3 - 1.4 for someone who is at a higher skill level
-    - No changes to outgoing/incoming HP damage. No per-hit hooks by default.
-- **ServerSync** support:
-  - Server can lock and broadcast settings.
-  - `ModRequired = true` by default: clients must have the mod.
-- Full damage if you miss a parry or block so you will still be punished for getting hit.
+Stagger Tuner increases the amount of stagger your character can take before being staggered.
+
+The default multiplier is **1.60x**, or roughly **60% more stagger resistance**. This felt good to me while playing on Hard and Very Hard, but the value is fully configurable.
+
+- **1.0x** = Vanilla
+- **1.3–1.4x** = A lighter adjustment
+- **1.6x** = Default and my recommended starting point
+- **Up to 3.0x** = Configurable for those who want considerably more stagger resistance
+
+> **Note:** The visible stagger bar does not become larger. The amount of stagger required to fill it is increased.
+
+Stagger Tuner does **not** reduce incoming damage or increase outgoing damage. Missing a block or parry will still result in taking full damage, so getting hit can still hurt.
 
 
+## Multiplayer
 
-This is my first mod hopefully it helps you enjoy the game a bit more
+Stagger Tuner supports multiplayer and dedicated servers.
 
-# Contact
-Discord: jello_cf
+Server settings are automatically synchronized to connected clients and can be locked by the server administrator. The mod must be installed on both the server and connecting clients.
+
+## Configuration
+
+The stagger multiplier can be changed using the BepInEx Configuration Manager or by editing the configuration file.
+
+**Default:** `1.60`  
+**Range:** `0.50 – 3.00`  
+**Vanilla:** `1.00`
+
+## Contact
+
+Discord: **jello_cf**

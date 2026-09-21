@@ -1,55 +1,85 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+﻿
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net48</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<Nullable>enable</Nullable>
+
+		<OutputType>Library</OutputType>
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
 		<AssemblyName>StaggerTuner</AssemblyName>
 		<RootNamespace>VH.StaggerTuner</RootNamespace>
-		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<Optimize>true</Optimize>
+		<Version>1.0.0</Version>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+
+		<GenerateAssemblyInfo>true</GenerateAssemblyInfo>
 		<Deterministic>true</Deterministic>
+		<ValheimDir Condition="'$(ValheimDir)' == ''">C:\Program Files (x86)\Steam\steamapps\common\Valheim</ValheimDir>
+		<ValheimManaged Condition="'$(ValheimManaged)' == ''">$(ValheimDir)\valheim_Data\Managed</ValheimManaged>
+		<PublicizedAssemblies Condition="'$(PublicizedAssemblies)' == ''">$(ValheimManaged)\publicized_assemblies</PublicizedAssemblies>
+
+		<BepInExLibDir Condition="'$(BepInExLibDir)' == ''">C:\ValheimShit\libs</BepInExLibDir>
 	</PropertyGroup>
 
-	<!-- edit these two paths -->
-	<PropertyGroup>
-		<GameRoot>C:\Program Files (x86)\Steam\steamapps\common\Valheim</GameRoot>
-		<ServerSyncRoot>C:\git\libs</ServerSyncRoot>
-		<!-- derived -->
-		<BepInExCore>$(GameRoot)\BepInEx\core</BepInExCore>
-		<UnityManaged>$(GameRoot)\valheim_Data\Managed</UnityManaged>
-	</PropertyGroup>
 	<ItemGroup>
-	  <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.43">
-	    <PrivateAssets>all</PrivateAssets>
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	  </PackageReference>
-	</ItemGroup>
-
-	<ItemGroup>
-		<!-- Resolve-only: provided by the game -->
-		<Reference Include="0Harmony">
-		  <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim_Dev\BepInEx\core\0Harmony.dll</HintPath>
-		</Reference>
-		<Reference Include="assembly_valheim">
-			<HintPath>$(UnityManaged)\assembly_valheim.dll</HintPath>
-			<Private>True</Private>
-		</Reference>
 		<Reference Include="BepInEx">
-		  <HintPath>..\..\..\Program Files (x86)\Steam\steamapps\common\Valheim_Dev\BepInEx\core\BepInEx.dll</HintPath>
+			<HintPath>$(BepInExLibDir)\BepInEx.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
-		<Reference Include="ServerSync">
-		  <HintPath>..\libs\ServerSync.dll</HintPath>
+
+		<Reference Include="0Harmony">
+			<HintPath>$(BepInExLibDir)\0Harmony.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
-		<Reference Include="UnityEngine.CoreModule">
-			<HintPath>$(UnityManaged)\UnityEngine.CoreModule.dll</HintPath>
-			<Private>True</Private>
+
+		<Reference Include="assembly_valheim">
+			<HintPath>$(PublicizedAssemblies)\assembly_valheim_publicized.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
+
+		<Reference Include="assembly_utils">
+			<HintPath>$(PublicizedAssemblies)\assembly_utils_publicized.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+
+		<Reference Include="assembly_guiutils">
+			<HintPath>$(PublicizedAssemblies)\assembly_guiutils_publicized.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+
 		<Reference Include="UnityEngine">
-			<HintPath>$(UnityManaged)\UnityEngine.dll</HintPath>
-			<Private>True</Private>
+			<HintPath>$(ValheimManaged)\UnityEngine.dll</HintPath>
+			<Private>false</Private>
 		</Reference>
 
-		<!-- Copy so we can merge it -->
-	</ItemGroup>
+		<Reference Include="UnityEngine.CoreModule">
+			<HintPath>$(ValheimManaged)\UnityEngine.CoreModule.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
 
-	<!-- Import our CLI-based merge step -->
-	<Import Project="ILRepack.targets" Condition="Exists('ILRepack.targets')" />
+		<Reference Include="UnityEngine.InputLegacyModule">
+			<HintPath>$(ValheimManaged)\UnityEngine.InputLegacyModule.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+
+		<Reference Include="UnityEngine.UI">
+			<HintPath>$(ValheimManaged)\UnityEngine.UI.dll</HintPath>
+			<Private>false</Private>
+		</Reference>
+
+		<Reference Include="ServerSync">
+			<HintPath>..\libs\ServerSync.dll</HintPath>
+			<Private>true</Private>
+		</Reference>
+
+		<PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.46">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+
+	</ItemGroup>
+	<Import Project="ILRepack.targets" />
 </Project>

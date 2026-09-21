@@ -1,3 +1,7 @@
+## 1.0.0
+- 1.0 ready
+- Cleaned up config 
+
 ## 0.8.4
 - Removed non-needed OnDestroy that was would not cause any issues but for peace of mind removed
 - Clarified description to be a bit less confusing
