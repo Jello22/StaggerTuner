@@ -30,6 +30,12 @@ The stagger multiplier can be changed using the BepInEx Configuration Manager or
 **Range:** `0.50 – 3.00`  
 **Vanilla:** `1.00`
 
+## Updating From an Older Version
+
+If updating from a pre-1.0 version of Stagger Tuner, it is recommended that you delete the existing Stagger Tuner configuration file and allow the mod to generate a new one.
+
+This prevents old or obsolete configuration entries from previous versions from remaining in the file.
+
 ## Contact
 
 Discord: **jello_cf**
