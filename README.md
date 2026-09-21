@@ -13,7 +13,7 @@ The default multiplier is **1.60x**, or roughly **60% more stagger resistance**.
 
 > **Note:** The visible stagger bar does not become larger. The amount of stagger required to fill it is increased.
 
-Stagger Tuner does **not** reduce incoming damage or increase outgoing damage. Missing a block or parry will still result in taking full damage, so getting hit can still hurt.
+Stagger Tuner does **not** reduce incoming damage or increase outgoing damage. Missing a block or parry will still result in taking full damage, so getting hit will still hurt.
 
 
 ## Multiplayer
