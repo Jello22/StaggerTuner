@@ -81,5 +81,5 @@
 		</PackageReference>
 
 	</ItemGroup>
-	<Import Project="ILRepack.targets" />
+	<Import Project="StaggerTuner.ILRepack.targets" />
 </Project>

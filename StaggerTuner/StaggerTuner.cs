@@ -61,7 +61,7 @@ namespace VH.StaggerTuner
             );
 
             // ServerSync lock
-            ConfigEntry<bool> lockConfig = base.Config.Bind(
+            ConfigEntry<bool> lockConfig = Config.Bind(
                 "General",
                 "Lock Configuration",
                 true,
@@ -85,13 +85,13 @@ namespace VH.StaggerTuner
         /// </summary>
         private ConfigEntry<T> BindConfig<T>(
             string group,
-            string name,
+            string configName,
             T value,
             ConfigDescription description,
             bool synchronizedSetting = true)
         {
             ConfigEntry<T> configEntry =
-                base.Config.Bind(group, name, value, description);
+                Config.Bind(group, configName, value, description);
 
             SyncedConfigEntry<T> syncedConfigEntry =
                 ConfigSync.AddConfigEntry(configEntry);
@@ -102,13 +102,11 @@ namespace VH.StaggerTuner
         }
 
         [HarmonyPatch(typeof(Character), nameof(Character.GetStaggerTreshold))]
-        private static class Patch_GetStaggerTreshold_Postfix
-        {
+        private static class PatchGetStaggerTresholdPostfix        {
             private static void Postfix(Character __instance, ref float __result)
             {
                 try
                 {
-                    
                     if (!__instance.IsPlayer())
                         return;
 
